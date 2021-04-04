@@ -1,6 +1,8 @@
-﻿using CadastroPacientes.Models;
+﻿using CadastroPacientes.Data;
+using CadastroPacientes.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -13,43 +15,41 @@ namespace CadastroPacientes.Controllers
     public class PacienteController : Controller
     {
 
-        private readonly ILogger<PacienteController> _logger;
+        private readonly IESContext _context;
 
-        public PacienteController(ILogger<PacienteController> logger)
+        public PacienteController(IESContext context)
         {
-            _logger = logger;
+            this._context = context;
         }
 
-        private static IList<Paciente> pacientes =
-            new List<Paciente>()
-            {
-                new Paciente()
-                {
-                    PacienteID = 1,
-                    Nome = "Thiago",
-                    Telefone = "99999-9999",
-                    Modalidade = "Fisioterapia",
-                    Email = "thiago@gmail.com",
-                    Endereco = "Rua Itororo",
-                    DataNascimento = "04/12/1986",
-                    Diagnostico = "Condromalacia",
-                    QueixaPrincipal = "Dor"
-                }
-            };
+
         // GET: PacienteController
-        public ActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View(pacientes.OrderBy(i => i.PacienteID));
+            return View(await _context.Pacientes.OrderBy(c => c.Nome).ToListAsync());
         }
 
+        
         // GET: PacienteController/Details/5
-        public ActionResult Details(long id)
+        public async Task<IActionResult> Details(long? id)
         {
-            return View(pacientes.Where(i => i.PacienteID == id).First());
-        }
+            if (id == null)
+            {
+                return NotFound();
+            }
 
+            var paciente = await _context.Pacientes.SingleOrDefaultAsync(m => m.PacienteID == id);
+
+            if(paciente == null)
+            {
+                return NotFound();
+            }
+
+            return View(paciente);
+        }
+        
         // GET: PacienteController/Create
-        public ActionResult Create()
+        public IActionResult Create()
         {
             return View();
         }
@@ -57,45 +57,112 @@ namespace CadastroPacientes.Controllers
         // POST: PacienteController/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Paciente paciente)
+        public async Task<ActionResult> Create([Bind("Nome", "Telefone", "Modalidade", "Diagnostio", "Email", "Endereco", "DataNascimento", "Diagnostico", "QueixaPrincipal")] Paciente paciente)
         {
-            pacientes.Add(paciente);
-            paciente.PacienteID = pacientes.Select(i => i.PacienteID).Max() + 1;
-            return RedirectToAction("Index");
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    _context.Add(paciente);
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
+                }
+
+            }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError("", "Não foi possível inserir os dados.");
+            }
+            return View(paciente);
         }
 
+
         // GET: PacienteController/Edit/5
-        public ActionResult Edit(long id)
+        public async Task<IActionResult> Edit(long? id)
         {
-            return View(pacientes.Where(i => i.PacienteID == id).First());
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var paciente = await _context.Pacientes.SingleOrDefaultAsync(m => m.PacienteID == id);
+
+            if (paciente == null)
+            {
+                return NotFound();
+            }
+            return View(paciente);
         }
 
         // POST: PacienteController/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Paciente paciente)
+        public async Task<IActionResult> Edit(long? id, [Bind("PacienteID", "Nome", "Telefone", "Modalidade", "Diagnostio", "Email", "Endereco", "DataNascimento", "Diagnostico", "QueixaPrincipal")] Paciente paciente)
         {
-            pacientes.Remove(pacientes.Where(i => i.PacienteID == paciente.PacienteID).First());
-            pacientes.Add(paciente);
-            return RedirectToAction("Index");
+            if (id != paciente.PacienteID){
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(paciente);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!PacienteExists(paciente.PacienteID))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }                 
+                }
+                return RedirectToAction(nameof(Index));              
+            }
+            return View(paciente);
         }
 
-        // GET: PacienteController/Delete/5
-        public ActionResult Delete(long id)
+        private bool PacienteExists(long? id)
         {
-            return View(pacientes.Where(i =>i.PacienteID == id).First());
+            return _context.Pacientes.Any(e => e.PacienteID == id);
+        }
+
+
+        
+        // GET: PacienteController/Delete/5
+        public async Task<IActionResult> Delete(long? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var paciente = await _context.Pacientes.SingleOrDefaultAsync(m => m.PacienteID == id);
+
+            if(paciente == null)
+            {
+                return NotFound();
+            }
+
+            return View(paciente);
 
         }
 
         // POST: PacienteController/Delete/5
-        [HttpPost]
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(Paciente paciente)
+        public async Task<IActionResult> DeleteConfirmed(long? id)
         {
-            pacientes.Remove(pacientes.Where(i => i.PacienteID == paciente.PacienteID).First());
-            return RedirectToAction("Index");
+            var paciente = await _context.Pacientes.SingleOrDefaultAsync(m => m.PacienteID == id);
+            _context.Pacientes.Remove(paciente);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
-
+        
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
