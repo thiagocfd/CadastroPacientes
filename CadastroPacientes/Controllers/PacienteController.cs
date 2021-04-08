@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using PagedList;
+
 
 namespace CadastroPacientes.Controllers
 {
@@ -23,13 +25,54 @@ namespace CadastroPacientes.Controllers
         }
 
 
-        // GET: PacienteController
-        public async Task<IActionResult> Index()
+        //GET: PacienteController
+        public async Task<IActionResult> Index(string sortOrder, string currentFilter, string searchString, int? page)
         {
-            return View(await _context.Pacientes.OrderBy(c => c.Nome).ToListAsync());
+            ViewBag.CurrentSort = sortOrder;
+            ViewData["NomeParm"] = String.IsNullOrEmpty(sortOrder) ? "nome_desc" : "";
+            ViewData["ModalidadeParm"] = String.IsNullOrEmpty(sortOrder) ? "modalidade_desc" : "Modalidade";
+            ViewData["DiagnosticoParm"] = String.IsNullOrEmpty(sortOrder) ? "diagnostico_desc" : "Diagnostico";
+
+            if (searchString != null)
+            {
+                page = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            ViewBag.CurrentFilter = searchString;
+
+            var pacientes = from pac in _context.Pacientes select pac;
+
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                pacientes = pacientes.Where(s => s.Nome.Contains(searchString)
+                                       || s.Nome.Contains(searchString));
+            }
+
+            switch (sortOrder)
+            {
+                case "nome_desc":
+                    pacientes = pacientes.OrderByDescending(pac => pac.Nome);
+                    break;
+                case "Modalidade":
+                    pacientes = pacientes.OrderBy(pac => pac.Modalidade);
+                    break;
+                case "Diagnostico":
+                    pacientes = pacientes.OrderByDescending(pac => pac.Diagnostico);
+                    break;
+                default:
+                    pacientes = pacientes.OrderBy(pac => pac.Nome);
+                    break;
+            }
+            int pageSize = 10;
+            int pageNumber = (page ?? 1);
+            return View(pacientes.ToPagedList(pageNumber, pageSize));
         }
 
-        
+
         // GET: PacienteController/Details/5
         public async Task<IActionResult> Details(long? id)
         {

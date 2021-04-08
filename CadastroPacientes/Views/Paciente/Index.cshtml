@@ -1,57 +1,75 @@
-﻿@model IEnumerable<CadastroPacientes.Models.Paciente>
+﻿@model PagedList.IPagedList<CadastroPacientes.Models.Paciente>
+@using PagedList.Mvc;
+<link href="~/Content/PagedList.css" rel="stylesheet" type="text/css" />
+
 
 @{
-    ViewData["Title"] = "Index";
+    ViewBag.Title = "Pacientes";
 }
 
-<h1>Relação de pacientes</h1>
+<h2>Pacientes</h2>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    @Html.ActionLink("Create New", "Create")
 </p>
+
+@using (Html.BeginForm("Index", "Paciente", FormMethod.Get))
+{
+    <p>
+        Find by name: @Html.TextBox("SearchString", ViewBag.CurrentFilter as string)
+        <input type="submit" value="Search" />
+    </p>
+}
+
 <table class="table">
     <thead>
         <tr>
-           
+
             <th>
-                @Html.DisplayNameFor(model => model.Nome)
+                @Html.ActionLink("Nome", "Index", new { sortOrder = ViewBag.NomeParm, currentFilter = ViewBag.CurrentFilter })
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Telefone)
+                Telefone
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Modalidade)
+                @Html.ActionLink("Modalidade", "Index", new { sortOrder = ViewBag.ModalidadeParm, currentFilter = ViewBag.CurrentFilter })
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Diagnostico)
+                @Html.ActionLink("Diagnostico", "Index", new { sortOrder = ViewBag.DiagnosticoParm, currentFilter = ViewBag.CurrentFilter })
             </th>
-            
+
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            
-            <td>
-                @Html.DisplayFor(modelItem => item.Nome)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Telefone)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Modalidade)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Diagnostico)
-            </td>
-            
-            <td>
-                @Html.ActionLink("Edit", "Edit", new {  id=item.PacienteID  }) |
-                @Html.ActionLink("Details", "Details", new {  id=item.PacienteID  }) |
-                @Html.ActionLink("Delete", "Delete", new {  id=item.PacienteID  })
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+
+                <td>
+                    @Html.DisplayFor(modelItem => item.Nome)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Telefone)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Modalidade)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Diagnostico)
+                </td>
+
+                <td>
+                    @Html.ActionLink("Edit", "Edit", new { id = item.PacienteID }) |
+                    @Html.ActionLink("Details", "Details", new { id = item.PacienteID }) |
+                    @Html.ActionLink("Delete", "Delete", new { id = item.PacienteID })
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
+
+<br />
+Page @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) of @Model.PageCount
+
+@*@Html.PagedListPager(Model, page => Url.Action("Index", new { page, sortOrder = ViewBag.CurrentSort, currentFilter = ViewBag.CurrentFilter }))*@
